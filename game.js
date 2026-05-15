@@ -1,9 +1,18 @@
 /* ── State ──────────────────────────────────────────────────────── */
 let currentPuzzle = PUZZLES[0];
 let selectedSuspect = null;
-let placements = {};      // suspectId → [row, col]
+let placements = {};       // suspectId → [row, col]
 let solved = false;
 let noteCells = new Set(); // "row,col" strings highlighted by clue notes
+
+// Timer
+let timerInterval = null;
+let timerSeconds  = 0;
+let timerStarted  = false;
+
+// Move counter & undo history
+let moveCount   = 0;
+let moveHistory = []; // { suspectId, prevPosition, newPosition }
 
 /* ── Boot ───────────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,25 +36,40 @@ function buildPuzzleNav() {
 
 function loadPuzzle(index) {
   currentPuzzle = PUZZLES[index];
-  placements = {};
   selectedSuspect = null;
   solved = false;
   noteCells = new Set();
+  moveHistory = [];
+
+  stopTimer();
+  timerSeconds = 0;
+  timerStarted = false;
+  moveCount = 0;
+  updateTimerDisplay();
+  updateMoveDisplay();
+
+  // Restore saved progress (placements); moveHistory is NOT restored by design
+  placements = {};
+  restoreProgress(currentPuzzle.id);
 
   document.querySelectorAll(".nav-btn").forEach((b, i) => {
     b.classList.toggle("active", i === index);
   });
 
   document.getElementById("puzzle-title").textContent = currentPuzzle.title;
-  document.getElementById("story-text").textContent = currentPuzzle.story;
-  document.getElementById("check-btn").disabled = false;
-  document.getElementById("check-btn").textContent = "🔍 Check Solution";
+  document.getElementById("story-text").textContent  = currentPuzzle.story;
+  document.getElementById("check-btn").disabled      = false;
+  document.getElementById("check-btn").textContent   = "🔍 Check Solution";
   document.getElementById("result-banner").className = "result-banner hidden";
+  document.getElementById("undo-btn").disabled       = true;
 
+  showBestTime(currentPuzzle.id);
   buildGrid();
   buildSuspects();
   buildClues();
   buildLegend();
+
+  if (Object.keys(placements).length) updateSuspectPanel();
 }
 
 /* ── Room Lookup ────────────────────────────────────────────────── */
@@ -74,21 +98,14 @@ function buildGrid() {
 
   const roomMap = buildRoomMap();
 
-  // Determine the top-left cell of each room for label placement
   const roomLabelCell = {};
   currentPuzzle.rooms.forEach((room) => {
-    // First cell in the list is the label anchor
     const [r, c] = room.cells[0];
     roomLabelCell[`${r},${c}`] = room;
   });
 
-  // Top-left corner spacer
   container.appendChild(makeLabel(""));
-
-  // Column headers (1-based)
-  for (let c = 0; c < size; c++) {
-    container.appendChild(makeLabel(c + 1, "col-label"));
-  }
+  for (let c = 0; c < size; c++) container.appendChild(makeLabel(c + 1, "col-label"));
 
   for (let r = 0; r < size; r++) {
     container.appendChild(makeLabel(r + 1, "row-label"));
@@ -111,7 +128,6 @@ function buildGrid() {
         cell.style.color           = room.textColor || "#333";
       }
 
-      // Room name badge on the first cell of each room
       if (roomLabelCell[key] && !isVictim) {
         const badge = document.createElement("span");
         badge.className = "room-label-badge";
@@ -128,7 +144,6 @@ function buildGrid() {
     }
   }
 
-  // Single delegated click listener on the container
   container.addEventListener("click", (e) => {
     const cell = e.target.closest(".grid-cell");
     if (!cell || cell.dataset.isVictim) return;
@@ -150,19 +165,26 @@ function onCellClick(row, col) {
   if (solved) return;
 
   const existing = getSuspectAt(row, col);
+
   if (existing) {
+    // Record removal
+    moveHistory.push({ suspectId: existing, prevPosition: [row, col], newPosition: null });
     delete placements[existing];
-    renderGrid();
-    updateSuspectPanel();
-    return;
+  } else {
+    if (!selectedSuspect) return;
+    // Record placement (prev may be null if first time, or old position)
+    const prevPos = placements[selectedSuspect] ? [...placements[selectedSuspect]] : null;
+    moveHistory.push({ suspectId: selectedSuspect, prevPosition: prevPos, newPosition: [row, col] });
+    delete placements[selectedSuspect];
+    placements[selectedSuspect] = [row, col];
   }
 
-  if (!selectedSuspect) return;
+  startTimer();
+  moveCount++;
+  updateMoveDisplay();
+  saveProgress();
+  document.getElementById("undo-btn").disabled = false;
 
-  // Remove previous placement of this suspect
-  delete placements[selectedSuspect];
-
-  placements[selectedSuspect] = [row, col];
   renderGrid();
   updateSuspectPanel();
 }
@@ -174,21 +196,33 @@ function getSuspectAt(row, col) {
   return null;
 }
 
-/* ── Render Grid (visual update only, no new listeners) ─────────── */
+/* ── Undo ───────────────────────────────────────────────────────── */
+function undoLastMove() {
+  if (!moveHistory.length || solved) return;
+  const move = moveHistory.pop();
+
+  if (move.newPosition !== null) delete placements[move.suspectId];
+  if (move.prevPosition !== null) placements[move.suspectId] = move.prevPosition;
+
+  moveCount = Math.max(0, moveCount - 1);
+  updateMoveDisplay();
+  saveProgress();
+  renderGrid();
+  updateSuspectPanel();
+  document.getElementById("undo-btn").disabled = moveHistory.length === 0;
+}
+
+/* ── Render Grid ────────────────────────────────────────────────── */
 function renderGrid() {
-  const size = currentPuzzle.gridSize;
   const roomMap = buildRoomMap();
 
-  // Room label anchors (first cell per room)
   const roomLabelCell = {};
   currentPuzzle.rooms.forEach((room) => {
     const [r, c] = room.cells[0];
     roomLabelCell[`${r},${c}`] = room;
   });
 
-  // Determine conflicting rows and cols
-  const rowCount = {};
-  const colCount = {};
+  const rowCount = {}, colCount = {};
   Object.values(placements).forEach(([r, c]) => {
     rowCount[r] = (rowCount[r] || 0) + 1;
     colCount[c] = (colCount[c] || 0) + 1;
@@ -203,7 +237,6 @@ function renderGrid() {
     const isVictim = cell.dataset.isVictim === "true";
     const room = roomMap[key];
 
-    // Reset classes (keep victim-cell if applicable)
     cell.className = "grid-cell" + (isVictim ? " victim-cell" : "");
     cell.style.backgroundColor = room ? room.color + "bb" : "";
     cell.style.borderColor     = room ? room.color : "";
@@ -217,17 +250,13 @@ function renderGrid() {
       return;
     }
 
-    // Note highlight
     if (noteCells.has(key)) cell.classList.add("note-highlight");
 
     const suspectId = getSuspectAt(r, c);
-    const suspect = suspectId
-      ? currentPuzzle.suspects.find((s) => s.id === suspectId)
-      : null;
+    const suspect   = suspectId ? currentPuzzle.suspects.find((s) => s.id === suspectId) : null;
 
-    // Re-add room label badge if needed (and cell not occupied)
     const labelRoom = roomLabelCell[key];
-    if (labelRoom && !isVictim && !suspect) {
+    if (labelRoom && !suspect) {
       const badge = document.createElement("span");
       badge.className = "room-label-badge";
       badge.textContent = labelRoom.name;
@@ -245,7 +274,6 @@ function renderGrid() {
       </div>`;
     }
 
-    // Highlight selected suspect's current placement
     if (selectedSuspect && placements[selectedSuspect]) {
       const [sr, sc] = placements[selectedSuspect];
       if (r === sr && c === sc) cell.classList.add("selected-placement");
@@ -257,7 +285,6 @@ function renderGrid() {
 function buildSuspects() {
   const panel = document.getElementById("suspects-panel");
   panel.innerHTML = "";
-
   currentPuzzle.suspects.forEach((s) => {
     const card = document.createElement("div");
     card.className = "suspect-card";
@@ -304,12 +331,10 @@ function updateSuspectPanel() {
 function buildClues() {
   const list = document.getElementById("clues-list");
   list.innerHTML = "";
-
   currentPuzzle.clues.forEach((clue, i) => {
     const li = document.createElement("li");
     li.className = "clue-item";
     li.innerHTML = `<span class="clue-num">${i + 1}</span><span class="clue-text">${clue.text}</span>`;
-
     if (clue.highlight) {
       li.classList.add("has-highlight");
       li.title = "Click to highlight grid cells";
@@ -323,7 +348,6 @@ function toggleClueHighlight(clue, li) {
   li.classList.toggle("active-clue");
   const h = clue.highlight;
   if (!h) return;
-
   const size = currentPuzzle.gridSize;
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
@@ -351,16 +375,98 @@ function buildLegend() {
   });
 }
 
+/* ── Timer ──────────────────────────────────────────────────────── */
+function startTimer() {
+  if (timerStarted) return;
+  timerStarted = true;
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function updateTimerDisplay() {
+  document.getElementById("timer-display").textContent = formatTime(timerSeconds);
+}
+
+function updateMoveDisplay() {
+  document.getElementById("move-display").textContent = moveCount;
+}
+
+/* ── localStorage ───────────────────────────────────────────────── */
+function saveProgress() {
+  try {
+    localStorage.setItem(`whodoku_progress_${currentPuzzle.id}`, JSON.stringify(placements));
+  } catch (_) {}
+}
+
+function restoreProgress(puzzleId) {
+  try {
+    const raw = localStorage.getItem(`whodoku_progress_${puzzleId}`);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const validIds = new Set(currentPuzzle.suspects.map((s) => s.id));
+    for (const [id, pos] of Object.entries(data)) {
+      if (validIds.has(id) && Array.isArray(pos) && pos.length === 2) {
+        placements[id] = pos;
+      }
+    }
+  } catch (_) {}
+}
+
+function clearProgress(puzzleId) {
+  try { localStorage.removeItem(`whodoku_progress_${puzzleId}`); } catch (_) {}
+}
+
+function saveBestTime(puzzleId, seconds) {
+  try {
+    const key = `whodoku_best_${puzzleId}`;
+    const prev = localStorage.getItem(key);
+    if (prev === null || seconds < parseInt(prev)) {
+      localStorage.setItem(key, String(seconds));
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+function showBestTime(puzzleId) {
+  try {
+    const best = localStorage.getItem(`whodoku_best_${puzzleId}`);
+    const item = document.getElementById("best-time-item");
+    const disp = document.getElementById("best-time-display");
+    if (best !== null) {
+      disp.textContent = formatTime(parseInt(best));
+      item.style.display = "";
+    } else {
+      item.style.display = "none";
+    }
+  } catch (_) {}
+}
+
 /* ── Check Solution ─────────────────────────────────────────────── */
 document.getElementById("check-btn").addEventListener("click", checkSolution);
+
+document.getElementById("undo-btn").addEventListener("click", undoLastMove);
+
 document.getElementById("reset-btn").addEventListener("click", () => {
   const idx = PUZZLES.findIndex((p) => p.id === currentPuzzle.id);
+  clearProgress(currentPuzzle.id);
   loadPuzzle(idx);
 });
 
 function hasConflicts() {
-  const rowCount = {};
-  const colCount = {};
+  const rowCount = {}, colCount = {};
   for (const [r, c] of Object.values(placements)) {
     rowCount[r] = (rowCount[r] || 0) + 1;
     colCount[c] = (colCount[c] || 0) + 1;
@@ -375,7 +481,6 @@ function checkSolution() {
     showBanner("warning", "⚠️ Place all suspects on the grid before checking.");
     return;
   }
-
   if (hasConflicts()) {
     showBanner("error", "❌ There is a row or column conflict. Each suspect must occupy a unique row and column.");
     return;
@@ -384,19 +489,25 @@ function checkSolution() {
   let correct = true;
   for (const [id, pos] of Object.entries(currentPuzzle.solution)) {
     const placed = placements[id];
-    if (!placed || placed[0] !== pos[0] || placed[1] !== pos[1]) {
-      correct = false;
-      break;
-    }
+    if (!placed || placed[0] !== pos[0] || placed[1] !== pos[1]) { correct = false; break; }
   }
 
   if (correct) {
     solved = true;
-    const murderer = currentPuzzle.suspects.find((s) => s.id === currentPuzzle.murderer);
+    stopTimer();
+    const isNewBest = saveBestTime(currentPuzzle.id, timerSeconds);
+    clearProgress(currentPuzzle.id);
+    showBestTime(currentPuzzle.id);
+
+    const murderer   = currentPuzzle.suspects.find((s) => s.id === currentPuzzle.murderer);
     const murderRoom = getRoomAt(...currentPuzzle.solution[currentPuzzle.murderer]);
+    const timeStr    = formatTime(timerSeconds);
+    const bestNote   = isNewBest ? " 🏆 New best time!" : "";
+
     showBanner(
       "success",
-      `🎉 Case solved! The murderer is <strong>${murderer.name}</strong> ${murderer.emoji} — they were alone with the victim in the <em>${murderRoom ? murderRoom.name : "same area"}</em>!`
+      `🎉 Case solved! The murderer is <strong>${murderer.name}</strong> ${murderer.emoji} — alone with the victim in the <em>${murderRoom ? murderRoom.name : "same area"}</em>!
+       <br><small>Solved in <strong>${timeStr}</strong> with <strong>${moveCount}</strong> move${moveCount !== 1 ? "s" : ""}${bestNote}</small>`
     );
     document.getElementById("check-btn").disabled = true;
     highlightMurderer();
@@ -425,7 +536,5 @@ document.getElementById("close-help").addEventListener("click", () => {
   document.getElementById("help-modal").classList.add("hidden");
 });
 document.getElementById("help-modal").addEventListener("click", (e) => {
-  if (e.target.id === "help-modal") {
-    document.getElementById("help-modal").classList.add("hidden");
-  }
+  if (e.target.id === "help-modal") document.getElementById("help-modal").classList.add("hidden");
 });

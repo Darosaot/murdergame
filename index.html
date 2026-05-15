@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Murdoku – Murder Mystery meets Sudoku</title>
-  <meta name="description" content="Play Murdoku online: the logic puzzle that combines Sudoku grid mechanics with murder mystery deduction." />
+  <title>Whodoku – Murder Mystery meets Sudoku</title>
+  <meta name="description" content="Play Whodoku online: the logic puzzle that combines Sudoku grid mechanics with murder mystery deduction." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
@@ -17,7 +17,7 @@
   <a class="logo" href="#">
     <span class="logo-icon">🔍</span>
     <span>
-      <span class="logo-text">MURDOKU</span>
+      <span class="logo-text">WHODOKU</span>
       <span class="logo-sub">Murder Mystery · Sudoku Logic</span>
     </span>
   </a>
@@ -49,6 +49,24 @@
         <span class="board-title">🗺️ Crime Scene Floor Plan</span>
         <div class="legend" id="room-legend"></div>
       </div>
+      <!-- Stats bar: timer, moves, best time -->
+      <div id="stats-bar" class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Time</span>
+          <span class="stat-value" id="timer-display">0:00</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item">
+          <span class="stat-label">Moves</span>
+          <span class="stat-value" id="move-display">0</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item" id="best-time-item" style="display:none">
+          <span class="stat-label">🏆 Best</span>
+          <span class="stat-value" id="best-time-display">—</span>
+        </div>
+      </div>
+
       <div id="grid-container"></div>
     </div>
 
@@ -56,7 +74,8 @@
 
     <div class="actions">
       <button class="btn btn-primary" id="check-btn">🔍 Check Solution</button>
-      <button class="btn btn-ghost" id="reset-btn">↺ Reset Board</button>
+      <button class="btn btn-ghost" id="undo-btn" disabled>↩ Undo</button>
+      <button class="btn btn-ghost" id="reset-btn">↺ Reset</button>
     </div>
   </div>
 
@@ -83,7 +102,7 @@
 <div class="modal-overlay hidden" id="help-modal" role="dialog" aria-modal="true" aria-label="How to play">
   <div class="modal-box">
     <div class="modal-header">
-      <span class="modal-title">🔍 How to Play Murdoku</span>
+      <span class="modal-title">🔍 How to Play Whodoku</span>
       <button class="modal-close" id="close-help">✕</button>
     </div>
 
@@ -123,7 +142,9 @@
         <li><strong>Click an empty cell</strong> → places selected suspect there</li>
         <li><strong>Click an occupied cell</strong> → removes that suspect</li>
         <li><strong>Check Solution</strong> → verifies your placement</li>
-        <li><strong>Reset Board</strong> → clears all placements</li>
+        <li><strong>Undo</strong> → reverses the last placement or removal</li>
+        <li><strong>Reset</strong> → clears all placements and saved progress</li>
+        <li>Your progress is <strong>saved automatically</strong> — reload the page and pick up where you left off</li>
       </ul>
     </div>
   </div>
