@@ -69,11 +69,18 @@ function buildGrid() {
   const size = currentPuzzle.gridSize;
   container.innerHTML = "";
 
-  // CSS grid + column-number labels
   container.style.gridTemplateColumns = `20px repeat(${size}, 1fr)`;
   container.style.gridTemplateRows    = `20px repeat(${size}, 1fr)`;
 
   const roomMap = buildRoomMap();
+
+  // Determine the top-left cell of each room for label placement
+  const roomLabelCell = {};
+  currentPuzzle.rooms.forEach((room) => {
+    // First cell in the list is the label anchor
+    const [r, c] = room.cells[0];
+    roomLabelCell[`${r},${c}`] = room;
+  });
 
   // Top-left corner spacer
   container.appendChild(makeLabel(""));
@@ -84,7 +91,6 @@ function buildGrid() {
   }
 
   for (let r = 0; r < size; r++) {
-    // Row header (1-based)
     container.appendChild(makeLabel(r + 1, "row-label"));
 
     for (let c = 0; c < size; c++) {
@@ -100,9 +106,17 @@ function buildGrid() {
       cell.dataset.col = c;
 
       if (room) {
-        cell.style.setProperty("--room-color", room.color);
-        cell.style.backgroundColor = room.color + "44";
-        cell.style.borderColor     = room.color + "99";
+        cell.style.backgroundColor = room.color + "bb";
+        cell.style.borderColor     = room.color;
+        cell.style.color           = room.textColor || "#333";
+      }
+
+      // Room name badge on the first cell of each room
+      if (roomLabelCell[key] && !isVictim) {
+        const badge = document.createElement("span");
+        badge.className = "room-label-badge";
+        badge.textContent = room.name;
+        cell.appendChild(badge);
       }
 
       if (isVictim) {
@@ -110,12 +124,11 @@ function buildGrid() {
         cell.dataset.isVictim = "true";
       }
 
-      // Single delegated listener lives on the container (added below)
       container.appendChild(cell);
     }
   }
 
-  // Single event listener on the container (event delegation)
+  // Single delegated click listener on the container
   container.addEventListener("click", (e) => {
     const cell = e.target.closest(".grid-cell");
     if (!cell || cell.dataset.isVictim) return;
@@ -166,6 +179,13 @@ function renderGrid() {
   const size = currentPuzzle.gridSize;
   const roomMap = buildRoomMap();
 
+  // Room label anchors (first cell per room)
+  const roomLabelCell = {};
+  currentPuzzle.rooms.forEach((room) => {
+    const [r, c] = room.cells[0];
+    roomLabelCell[`${r},${c}`] = room;
+  });
+
   // Determine conflicting rows and cols
   const rowCount = {};
   const colCount = {};
@@ -185,8 +205,9 @@ function renderGrid() {
 
     // Reset classes (keep victim-cell if applicable)
     cell.className = "grid-cell" + (isVictim ? " victim-cell" : "");
-    cell.style.backgroundColor = room ? room.color + "44" : "";
-    cell.style.borderColor     = room ? room.color + "99" : "";
+    cell.style.backgroundColor = room ? room.color + "bb" : "";
+    cell.style.borderColor     = room ? room.color : "";
+    cell.style.color           = room ? (room.textColor || "#333") : "";
 
     if (isVictim) {
       cell.innerHTML = `<div class="victim-marker">
@@ -204,6 +225,15 @@ function renderGrid() {
       ? currentPuzzle.suspects.find((s) => s.id === suspectId)
       : null;
 
+    // Re-add room label badge if needed (and cell not occupied)
+    const labelRoom = roomLabelCell[key];
+    if (labelRoom && !isVictim && !suspect) {
+      const badge = document.createElement("span");
+      badge.className = "room-label-badge";
+      badge.textContent = labelRoom.name;
+      cell.appendChild(badge);
+    }
+
     if (suspect) {
       const isConflict = conflictRows.has(r) || conflictCols.has(c);
       cell.classList.add("occupied");
@@ -213,8 +243,6 @@ function renderGrid() {
         <span class="token-emoji">${suspect.emoji}</span>
         <span class="token-name">${suspect.name.split(" ")[0]}</span>
       </div>`;
-    } else {
-      cell.innerHTML = "";
     }
 
     // Highlight selected suspect's current placement
@@ -236,9 +264,11 @@ function buildSuspects() {
     card.dataset.id = s.id;
     card.style.setProperty("--suspect-color", s.color);
     card.innerHTML = `
-      <span class="suspect-emoji">${s.emoji}</span>
-      <span class="suspect-name">${s.name}</span>
-      <span class="suspect-status" id="status-${s.id}">Not placed</span>
+      <div class="suspect-avatar">${s.emoji}</div>
+      <div class="suspect-info">
+        <span class="suspect-name">${s.name}</span>
+        <span class="suspect-status" id="status-${s.id}">Not placed</span>
+      </div>
     `;
     card.addEventListener("click", () => toggleSuspect(s.id));
     panel.appendChild(card);
