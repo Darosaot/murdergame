@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Murdoku – Murder Mystery meets Sudoku</title>
+  <meta name="description" content="Play Murdoku online: the logic puzzle that combines Sudoku grid mechanics with murder mystery deduction." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header>
+  <a class="logo" href="#">
+    <span class="logo-icon">🔍</span>
+    <span>
+      MURDOKU
+      <span class="logo-sub">Murder Mystery meets Sudoku</span>
+    </span>
+  </a>
+  <div class="header-actions">
+    <button class="btn-icon" id="help-btn" title="How to play">❓</button>
+  </div>
+</header>
+
+<!-- ── Puzzle Navigation ────────────────────────────────────────── -->
+<nav id="puzzle-nav" aria-label="Puzzle selector"></nav>
+
+<!-- ── Main ────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Story -->
+  <div class="story-card">
+    <h2 id="puzzle-title">Loading…</h2>
+    <p id="story-text"></p>
+  </div>
+
+  <!-- Board -->
+  <div class="board-area">
+    <div class="board-card">
+      <div class="board-header">
+        <span class="board-title">🗺️ Crime Scene</span>
+        <div class="legend" id="room-legend"></div>
+      </div>
+      <div id="grid-container"></div>
+    </div>
+
+    <div id="result-banner" class="result-banner hidden"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="check-btn">🔍 Check Solution</button>
+      <button class="btn btn-ghost" id="reset-btn">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="panel">
+      <div class="panel-title">🕵️ Suspects</div>
+      <p style="font-size:0.75rem;color:var(--muted);margin-bottom:0.6rem">
+        Select a suspect, then click a cell to place them. Click a placed suspect to remove.
+      </p>
+      <div id="suspects-panel"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📋 Clues</div>
+      <p style="font-size:0.75rem;color:var(--muted);margin-bottom:0.6rem">
+        Click a clue to highlight the cells it refers to.
+      </p>
+      <ol id="clues-list"></ol>
+    </div>
+
+  </aside>
+
+</main>
+
+<!-- ── Help Modal ───────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="help-modal" role="dialog" aria-modal="true" aria-label="How to play">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">🔍 How to Play Murdoku</span>
+      <button class="btn-icon" id="close-help">✕</button>
+    </div>
+
+    <div class="help-section">
+      <h3>The Goal</h3>
+      <p>A murder has been committed. Your job is to figure out <strong>who did it</strong>. Place every suspect on the crime scene grid and identify who was alone with the victim.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>The Sudoku Rule</h3>
+      <p>Like Sudoku, each suspect must appear <strong>exactly once per row</strong> and <strong>exactly once per column</strong>. No two suspects can share a row or a column.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>The Murder Rule</h3>
+      <p>The victim is marked on the grid with a 💀. The murderer is the suspect who was placed in the <strong>same room (colored area)</strong> as the victim — they were alone together when the murder occurred.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Using Clues</h3>
+      <ul>
+        <li>Read each clue carefully — they constrain which rows, columns, or rooms a suspect can occupy.</li>
+        <li>Click a clue to <strong>highlight</strong> the cells it refers to on the grid.</li>
+        <li>Use process of elimination to narrow down each suspect's exact position.</li>
+      </ul>
+    </div>
+
+    <div class="help-section">
+      <h3>Controls</h3>
+      <ul>
+        <li><strong>Click a suspect</strong> → selects them (highlighted in the panel)</li>
+        <li><strong>Click a cell</strong> → places the selected suspect there</li>
+        <li><strong>Click an occupied cell</strong> → removes that suspect</li>
+        <li><strong>Check Solution</strong> → verifies your answer</li>
+        <li><strong>Reset</strong> → clears the board and starts over</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="puzzles.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
