@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Murdoku – Murder Mystery meets Sudoku</title>
+  <meta name="description" content="Play Murdoku online: the logic puzzle that combines Sudoku grid mechanics with murder mystery deduction." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header>
+  <a class="logo" href="#">
+    <span class="logo-icon">🔍</span>
+    <span>
+      <span class="logo-text">MURDOKU</span>
+      <span class="logo-sub">Murder Mystery · Sudoku Logic</span>
+    </span>
+  </a>
+  <div class="header-actions">
+    <button class="btn-icon" id="help-btn" title="How to play">? How to play</button>
+  </div>
+</header>
+
+<!-- ── Puzzle Navigation ────────────────────────────────────────── -->
+<nav id="puzzle-nav" aria-label="Puzzle selector"></nav>
+
+<!-- ── Main ────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Case File / Story -->
+  <div class="story-card">
+    <span class="story-icon">📜</span>
+    <div class="story-body">
+      <div class="story-label">Case File</div>
+      <h2 id="puzzle-title">Loading…</h2>
+      <p id="story-text"></p>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div class="board-area">
+    <div class="board-card">
+      <div class="board-header">
+        <span class="board-title">🗺️ Crime Scene Floor Plan</span>
+        <div class="legend" id="room-legend"></div>
+      </div>
+      <div id="grid-container"></div>
+    </div>
+
+    <div id="result-banner" class="result-banner hidden"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="check-btn">🔍 Check Solution</button>
+      <button class="btn btn-ghost" id="reset-btn">↺ Reset Board</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="panel">
+      <div class="panel-title">🕵️ Suspects</div>
+      <p class="panel-hint">Select a suspect, then click a cell to place them. Click a placed suspect to remove.</p>
+      <div id="suspects-panel"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📋 Evidence &amp; Clues</div>
+      <p class="panel-hint">Click a clue to highlight the relevant cells on the grid.</p>
+      <ol id="clues-list"></ol>
+    </div>
+
+  </aside>
+
+</main>
+
+<!-- ── Help Modal ───────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="help-modal" role="dialog" aria-modal="true" aria-label="How to play">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">🔍 How to Play Murdoku</span>
+      <button class="modal-close" id="close-help">✕</button>
+    </div>
+
+    <div class="help-section">
+      <h3>The Premise</h3>
+      <p>A murder has been committed. Your job is to identify <strong>the killer</strong>. Place every suspect on the crime scene grid and figure out who was alone with the victim.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Rule 1 — The Sudoku Rule</h3>
+      <div class="rule-box">
+        Each suspect must appear <strong>exactly once per row</strong> and <strong>exactly once per column</strong>. No two suspects can share a row or a column.
+      </div>
+    </div>
+
+    <div class="help-section">
+      <h3>Rule 2 — The Murder Rule</h3>
+      <div class="rule-box">
+        The victim is marked 💀 on the grid. The murderer is the suspect placed in the <strong>same colored room</strong> as the victim — they were the only one there with them.
+      </div>
+    </div>
+
+    <div class="help-section">
+      <h3>Using Clues</h3>
+      <ul>
+        <li>Read each clue — it constrains a suspect's possible rows, columns, or rooms.</li>
+        <li>Click a clue to <strong>highlight</strong> the cells it refers to on the grid.</li>
+        <li>Use elimination to find each suspect's exact cell.</li>
+        <li>Column numbers (1–N) and row numbers (1–N) appear on the grid edges.</li>
+      </ul>
+    </div>
+
+    <div class="help-section">
+      <h3>Controls</h3>
+      <ul>
+        <li><strong>Click a suspect card</strong> → selects them</li>
+        <li><strong>Click an empty cell</strong> → places selected suspect there</li>
+        <li><strong>Click an occupied cell</strong> → removes that suspect</li>
+        <li><strong>Check Solution</strong> → verifies your placement</li>
+        <li><strong>Reset Board</strong> → clears all placements</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="puzzles.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
