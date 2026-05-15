@@ -122,6 +122,7 @@ header {
 .badge-easy   { background: #d4edda; color: #1a6b2e; border: 1px solid #a8d4b5; }
 .badge-medium { background: #fff3cd; color: #8b5e00; border: 1px solid #f0d888; }
 .badge-hard   { background: #fce8e8; color: #8b1a1a; border: 1px solid #f0a8a8; }
+.badge-expert { background: #1a1a2e; color: #9090e0; border: 1px solid #5050b0; }
 
 /* ── Layout ─────────────────────────────────────────────────────── */
 main {
@@ -563,7 +564,8 @@ main {
   color: var(--muted);
   border: 1.5px solid var(--border);
 }
-.btn-ghost:hover { color: var(--text); border-color: var(--border2); background: #fff; }
+.btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--border2); background: #fff; }
+.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-icon {
   background: rgba(255,255,255,0.18);
@@ -690,6 +692,47 @@ main {
   line-height: 1.5;
 }
 
+/* ── Stats Bar ──────────────────────────────────────────────────── */
+.stats-bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stat-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 2.8ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-separator {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 720px) {
   main {
@@ -701,7 +744,13 @@ main {
   .story-icon { display: none; }
   .sidebar { flex-direction: row; flex-wrap: wrap; }
   .sidebar .panel { flex: 1; min-width: 260px; }
-  #grid-container { max-width: 360px; }
+  #grid-container { max-width: 380px; }
+  .actions { flex-wrap: wrap; }
+  .actions .btn { flex: 1 1 40%; }
+}
+
+@media (max-width: 480px) {
+  .grid-cell { min-height: 44px; }
 }
 
 @media (max-width: 400px) {
