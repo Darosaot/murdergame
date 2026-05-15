@@ -406,13 +406,13 @@ function updateMoveDisplay() {
 /* ── localStorage ───────────────────────────────────────────────── */
 function saveProgress() {
   try {
-    localStorage.setItem(`murdoku_progress_${currentPuzzle.id}`, JSON.stringify(placements));
+    localStorage.setItem(`whodoku_progress_${currentPuzzle.id}`, JSON.stringify(placements));
   } catch (_) {}
 }
 
 function restoreProgress(puzzleId) {
   try {
-    const raw = localStorage.getItem(`murdoku_progress_${puzzleId}`);
+    const raw = localStorage.getItem(`whodoku_progress_${puzzleId}`);
     if (!raw) return;
     const data = JSON.parse(raw);
     const validIds = new Set(currentPuzzle.suspects.map((s) => s.id));
@@ -425,12 +425,12 @@ function restoreProgress(puzzleId) {
 }
 
 function clearProgress(puzzleId) {
-  try { localStorage.removeItem(`murdoku_progress_${puzzleId}`); } catch (_) {}
+  try { localStorage.removeItem(`whodoku_progress_${puzzleId}`); } catch (_) {}
 }
 
 function saveBestTime(puzzleId, seconds) {
   try {
-    const key = `murdoku_best_${puzzleId}`;
+    const key = `whodoku_best_${puzzleId}`;
     const prev = localStorage.getItem(key);
     if (prev === null || seconds < parseInt(prev)) {
       localStorage.setItem(key, String(seconds));
@@ -442,7 +442,7 @@ function saveBestTime(puzzleId, seconds) {
 
 function showBestTime(puzzleId) {
   try {
-    const best = localStorage.getItem(`murdoku_best_${puzzleId}`);
+    const best = localStorage.getItem(`whodoku_best_${puzzleId}`);
     const item = document.getElementById("best-time-item");
     const disp = document.getElementById("best-time-display");
     if (best !== null) {
